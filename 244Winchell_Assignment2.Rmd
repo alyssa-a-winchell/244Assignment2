@@ -26,6 +26,7 @@ Load Packages:
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(boot))
 
 ```
 
@@ -95,15 +96,118 @@ a) Exploratory Graph
 
 ```{r explore}
 
-ggplot(fish, aes(x = Year, y = Total)) +
-  geom_point() +
-  geom_line(aes(y = Wild_Catch, colour = "Wild Caught")) + 
-  geom_line(aes(y = Farmed, colour = "Farmed"))
+ggplot(fish, aes(x = Year, y = Wild_Catch)) +
+  geom_point()
 
 ```
 
 
-b)
+b) This trend looks lie a logistic relationship between time and the amount of fish that are wild caught. Possible equation: N(t) = A/(1+Be^-rt)
+$$Wild~Caught~Fish~(Time) = \frac{A}{1+Be^{-rt}}$$
+- Estimate for K/A: ~ 73.4
+- Estimate for N0: 17.2 (starting population)
+- Estimate for B: ~ 4.058
+- Estimate for r: ~ 0.03543
+
+```{r}
+
+BEstimate <- (87 - 17.2)/17.2
+BEstimate #estimates and stores B
+
+wild <- fish %>%
+  select(Year, Wild_Catch)
+
+#change year to # of years since 1950 so that 1950 is 0
+wild$time = wild$Year - 1950
+
+#estimate r by modeling as a logarithmic relationship when the catch is growing exponentially
+log_time <- wild %>%
+  filter(time < 38)
+
+#plot cell growth vs time to make sure its linear
+ggplot(log_time, aes(x = time, y = log(Wild_Catch)))+
+  geom_point() #looks close to linear, which means that part was exp
+
+lm(log(Wild_Catch) ~ time, data = log_time) # r ~ 0.03543
+
+```
+
+Find model A, B, and r using Gauss-Newton method for iterative convergence (nonlinear least squares):
+
+Parameter Outcomes:
+- A = 100 million tons of fish
+- B = 4.32
+- r = 0.0699 million tons per year
+
+```{r nls}
+
+fish_fit <- nls(Wild_Catch ~ A/(1 + B*exp(-r*time)),
+                start = list(A = 73.4, B = 4.058, r = 0.03543),
+                             data = wild,
+                             trace = TRUE)
+
+fish_fit
+
+#store coeffs
+A <- coef(fish_fit)[1]
+B <- coef(fish_fit)[2]
+r <- coef(fish_fit)[3]
+
+#create a new seq of values that we want to make predictions for with model. New seq of time values of relevant times (time_seq)
+time_seq <- seq(1,65)
+
+#plug new seq into model with the parameters A, B , and r that were found:
+fish_pred <- A/(1 + B*exp(-r*time_seq))
+
+#bind together with original data (time_seq data):
+pred_df <- data.frame(time_seq, fish_pred)
+
+#create graph with original data and model preds:
+ggplot(wild, aes(x = time, y = Wild_Catch)) +
+  geom_point(color = "deeppink2", size = 3) +
+  geom_line(data = pred_df, aes(x = time_seq, y = fish_pred), colour = "palegreen4", size = 1) +
+  theme_bw() +
+  xlab("Years Since 1950") +
+  ylab("Fish Produced (Million Tons)") +
+  ggtitle("Global Production of Wild Caught Fish (1950-2012)")
+
+```
+
+
+### Part 3: Bootstrapped Confidence Interval for Proportions
+
+Recreate the Data:
+
+```{r recreate}
+
+yes <- rep.int(1, 22)
+no <- rep.int(0,14)
+response <- c(yes, no) 
+
+students <-seq(1,36)
+ 
+ nb <- data.frame(students,response)
+
+```
+
+
+Create Function and Bootsrap:
+
+```{r bootstrap}
+
+mean_fun <- function(x,i) {mean(x[i])} #i will be bootstrapping sample #, so x of bootstrap # to let it know that it will do the function for multiple times
+
+boot_10thou <- boot(nb, mean_fun, R = 10000) #vector, function, R is how many bootstrapping samples
+
+boot_10thou
+
+ggplot() +
+  aes(boot_10thou$t) +
+  geom_histogram()
+
+```
+
+c)
 
 ### Part 4: Watch 3 RStudio::conf talks
 
