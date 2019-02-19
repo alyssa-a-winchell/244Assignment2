@@ -180,9 +180,7 @@ Recreate the Data:
 
 ```{r recreate}
 
-yes <- rep.int(1, 22)
-no <- rep.int(0,14)
-response <- c(yes, no) 
+response <- c(1, 1, 1 , 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
 students <-seq(1,36)
  
@@ -193,13 +191,14 @@ students <-seq(1,36)
 
 Create Function and Bootsrap:
 
-```{r bootstrap}
+```{r bootstrap, warning=FALSE, message=FALSE}
 
 mean_fun <- function(x,i) {mean(x[i])} #i will be bootstrapping sample #, so x of bootstrap # to let it know that it will do the function for multiple times
 
-boot_10thou <- boot(nb, mean_fun, R = 10000) #vector, function, R is how many bootstrapping samples
+boot_10thou <- boot(response, mean_fun, R = 10000) #vector, function, R is how many bootstrapping samples
 
-boot_10thou
+boot_10thou # to report bias, SE
+boot_10thou$t0 # to report the mean of the original sample
 
 ggplot() +
   aes(boot_10thou$t) +
@@ -207,21 +206,30 @@ ggplot() +
 
 ```
 
-c)
+95% Confidence Intervals:
+
+```{r CI, warning=FALSE}
+
+boot.ci(boot_10thou, conf = 0.95)
+
+```
+
+
+c) The original mean of student responses was 61%, while the mean when bootstrapping with 10,000 samples is 0.021% lower than the original mean at 60.98% with a standard error of 8.1. The normal 95% confidence intervals are 45% and 77%.
 
 ### Part 4: Watch 3 RStudio::conf talks
 
-1. *The Future's Shiny: Dashboards for Pioneering Genomic Medicine in R by Nic Crane*
+1. **The Future's Shiny: Dashboards for Pioneering Genomic Medicine in R by Nic Crane**
 - How shiny apps can be created for giant complex, databases for many users with different goals to ensure that data actually gets properly applied to real world problems.
 - Good ideas for how to make metadata easily accessible in a shiny app (and in general).
 - How does the company plan to make sure that the app is effective for all the different user needs?
 
-2. *R at the ACLU: Joining tables to reunite families by Brooke Watson*
+2. **R at the ACLU: Joining tables to reunite families by Brooke Watson**
 - How to deal with very messy data created by a large number of people and how to avoid major mistakes that could have let more children fall through the cracks.
 - Regarding the large amount of missing data in this case: “The data we collect reflects what we value.” Brought up some of the challenges of working with uncooperative data sources and bureaucracies and what the missingness says about the values of the immigration policies.
 - Were there any other ways you were able to catch errors in the data besides illogical timelines?
 
-3. *Learning and using the tidyverse for historical research by Jesse Sadler*
+3. **Learning and using the tidyverse for historical research by Jesse Sadler**
 - A nice example of another R beginner learning how to apply R to a field (history) that I usually don’t think of using coding.
 - Goes over what it’s like to build your own package and what kind of problem you could be solving with an interesting historic example.
 - How long did it take to build the package and how many functions does it have?
