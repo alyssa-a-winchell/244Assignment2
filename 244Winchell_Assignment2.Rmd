@@ -1,0 +1,123 @@
+---
+title: 'ESM 244: Assignment 2'
+author: "Alyssa Winchell"
+date: "February 18, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Part 1: Data wrangling and visualization - cetaceans in captivity
+
+Read in data:
+
+```{r load}
+
+cetacean <- read.csv("captive_cetacean.csv")
+
+```
+
+Load Packages:
+
+```{r packages, echo = TRUE, warning=FALSE}
+
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(dplyr))
+
+```
+
+Data Wrangling:
+
+```{r cetWrangle, warning=FALSE}
+
+cap_rec <- cetacean %>%
+  filter(acquisition == "Capture" | acquisition == "Rescue") %>%
+  filter(status == "Alive") %>%
+  select(species, birthYear, acquisition, originLocation, currently) %>%
+  filter(birthYear != "NA")
+
+cap_rec$navy <- str_detect(cap_rec$currently,"Navy") #does a given entry include "navy"" in its current location?
+
+cap_rec$research <- str_detect(cap_rec$currently,"Research|Studies") #does a given entry include "Research" or "Studies" in its current location?
+
+cap_rec$aquarium <- str_detect(cap_rec$currently,"Aquarium|Zoo") #does a given entry include "Aquarium" or "Zoo" in its current location?
+
+cap_rec$sector = with(cap_rec, ifelse(navy %in% "TRUE", "Navy",
+                  ifelse(research %in% "TRUE", "Research",
+                  ifelse(aquarium %in% "TRUE", "Aquariums and Zoos", "Themeparks and Resorts")))) #creates a column for the sector that currently has the cetacean
+
+cet_sector <- cap_rec %>%
+  select(birthYear, acquisition, sector)
+
+ThemeOnly <- cap_rec %>%
+  filter(sector == "Themeparks and Resorts") #count how many cetaceans are in themeparks
+
+navyOnly <- cap_rec %>%
+  filter(navy == "TRUE") #count how many cetaceans are in the navy
+
+ROnly <- cap_rec %>%
+  filter(research == "TRUE") #count how many cetaceans are in research facilities
+
+AOnly <- cap_rec %>%
+  filter(aquarium == "TRUE") #count how many are in aquariums and zoos
+
+```
+
+Make a plot:
+
+```{r cetGraph}
+
+ggplot(data = cet_sector, aes(sector, fill = acquisition))+
+  geom_bar(stat = "count") +
+  theme_bw() +
+  ylab("Number of Cetaceans") +
+  xlab("Sector")
+
+```
+
+**Figure 1: Captured and Rescued Cetaceans in the US by Sector.** The number of wild-born cetaceans currently in caprtivity by aquariums and zoos (n = 14), the US navy (n = 28), research facilities (n = 8), and themeparks and resorts (n = 53), with captured cetaceans represented in red and rescued cetaceans represented in blue. Only cetaceans that were still alive and living in captivity as of May 7, 2017 were included in the data (n = 103).
+
+### Part 2: Parameter Estimation – Wild Fish Catch
+
+Load Data:
+
+```{r}
+
+fish <- read.csv("fish_catch_FIXED.csv")
+
+```
+
+
+a) Exploratory Graph
+
+```{r explore}
+
+ggplot(fish, aes(x = Year, y = Total)) +
+  geom_point() +
+  geom_line(aes(y = Wild_Catch, colour = "Wild Caught")) + 
+  geom_line(aes(y = Farmed, colour = "Farmed"))
+
+```
+
+
+b)
+
+### Part 4: Watch 3 RStudio::conf talks
+
+1. *The Future's Shiny: Dashboards for Pioneering Genomic Medicine in R by Nic Crane*
+- How shiny apps can be created for giant complex, databases for many users with different goals to ensure that data actually gets properly applied to real world problems.
+- Good ideas for how to make metadata easily accessible in a shiny app (and in general).
+- How does the company plan to make sure that the app is effective for all the different user needs?
+
+2. *R at the ACLU: Joining tables to reunite families by Brooke Watson*
+- How to deal with very messy data created by a large number of people and how to avoid major mistakes that could have let more children fall through the cracks.
+- Regarding the large amount of missing data in this case: “The data we collect reflects what we value.” Brought up some of the challenges of working with uncooperative data sources and bureaucracies and what the missingness says about the values of the immigration policies.
+- Were there any other ways you were able to catch errors in the data besides illogical timelines?
+
+3. *Learning and using the tidyverse for historical research by Jesse Sadler*
+- A nice example of another R beginner learning how to apply R to a field (history) that I usually don’t think of using coding.
+- Goes over what it’s like to build your own package and what kind of problem you could be solving with an interesting historic example.
+- How long did it take to build the package and how many functions does it have?
